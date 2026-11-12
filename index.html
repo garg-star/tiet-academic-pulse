@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';"
+  >
+  <title>TIET AcademicPulse — Attendance Margin &amp; CGPA Forecaster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    :focus-visible {
+      outline: 2px solid #4f46e5;
+      outline-offset: 2px;
+    }
+    .sr-only-focusable:focus {
+      position: fixed;
+      top: 0.75rem;
+      left: 0.75rem;
+      width: auto;
+      height: auto;
+      padding: 0.5rem 1rem;
+      clip: auto;
+      z-index: 60;
+      background: #1e1b4b;
+      color: #ffffff;
+      border-radius: 0.5rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased flex flex-col">
+  <a href="#main-content" class="sr-only sr-only-focusable">Skip to main content</a>
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm" aria-hidden="true">
+          TP
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-slate-900">TIET AcademicPulse</h1>
+          <p class="text-xs sm:text-sm text-slate-600">Thapar University 75% Attendance Margin &amp; Credit-Weighted GPA Forecaster</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          id="btn-add-subject"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors"
+        >
+          <span aria-hidden="true">+</span>
+          <span>Add Subject</span>
+        </button>
+
+        <button
+          type="button"
+          id="btn-export-json"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+        >
+          <span>Export Backup JSON</span>
+        </button>
+
+        <label
+          for="import-json-input"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+        >
+          <span>Import JSON</span>
+          <input
+            type="file"
+            id="import-json-input"
+            accept="application/json,.json"
+            class="sr-only"
+          >
+        </label>
+
+        <button
+          type="button"
+          id="btn-reset-demo"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-800 hover:bg-rose-100 transition-colors"
+        >
+          <span>Reset Demo Semester</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="main-content" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- Global Validation / Error Banner -->
+    <div
+      id="global-error-banner"
+      role="alert"
+      class="hidden rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-900 flex items-start justify-between gap-3"
+    >
+      <p id="global-error-text" class="font-medium"></p>
+      <button
+        type="button"
+        id="btn-dismiss-error"
+        aria-label="Dismiss error alert"
+        class="text-rose-800 hover:text-rose-950 font-semibold text-xs px-2 py-1 rounded"
+      >
+        Dismiss
+      </button>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <section aria-labelledby="kpi-heading">
+      <h2 id="kpi-heading" class="sr-only">Academic Summary Metrics</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <article class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm" aria-live="polite">
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Overall Attendance</p>
+          <p id="kpi-overall-attendance" class="mt-2 text-3xl font-extrabold text-slate-900">0.0%</p>
+          <p id="kpi-overall-classes" class="mt-1 text-xs text-slate-600">0 / 0 classes attended</p>
+        </article>
+
+        <article class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm" aria-live="polite">
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Subject Health</p>
+          <p id="kpi-health-headline" class="mt-2 text-2xl font-bold text-slate-900">0 Safe / 0 Risk</p>
+          <p id="kpi-health-detail" class="mt-1 text-xs text-slate-600">75% minimum required per subject</p>
+        </article>
+
+        <article class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm" aria-live="polite">
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Projected SGPA</p>
+          <p id="kpi-projected-sgpa" class="mt-2 text-3xl font-extrabold text-indigo-700">0.00</p>
+          <p id="kpi-semester-credits" class="mt-1 text-xs text-slate-600">Across 0.0 semester credits</p>
+        </article>
+
+        <article class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm" aria-live="polite">
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Projected Cumulative CGPA</p>
+          <p id="kpi-projected-cgpa" class="mt-2 text-3xl font-extrabold text-emerald-700">0.00</p>
+          <p id="kpi-combined-credits" class="mt-1 text-xs text-slate-600">Combined 0.0 total credits</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Prior Academic Record & Filter Controls -->
+    <section aria-labelledby="controls-heading" class="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+        <div>
+          <h2 id="controls-heading" class="text-base font-bold text-slate-900">Prior Cumulative Record &amp; Subject Filters</h2>
+          <p class="text-xs text-slate-600">Combine completed TIET credits and CGPA with this semester's forecast.</p>
+        </div>
+        <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+          Auto-saved locally
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <label for="prev-credits-input" class="block text-xs font-semibold text-slate-700 mb-1">
+            Previous Completed Credits
+          </label>
+          <input
+            type="number"
+            id="prev-credits-input"
+            min="0"
+            max="300"
+            step="0.5"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-600"
+          >
+        </div>
+
+        <div>
+          <label for="prev-cgpa-input" class="block text-xs font-semibold text-slate-700 mb-1">
+            Current CGPA (0.00 – 10.00)
+          </label>
+          <input
+            type="number"
+            id="prev-cgpa-input"
+            min="0"
+            max="10"
+            step="0.01"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-600"
+          >
+        </div>
+
+        <div>
+          <label for="search-subjects-input" class="block text-xs font-semibold text-slate-700 mb-1">
+            Filter by Code or Subject Name
+          </label>
+          <input
+            type="search"
+            id="search-subjects-input"
+            placeholder="e.g., UTA018 or Algorithms"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-600"
+          >
+        </div>
+
+        <div>
+          <label for="status-filter-select" class="block text-xs font-semibold text-slate-700 mb-1">
+            Attendance Status Filter
+          </label>
+          <select
+            id="status-filter-select"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-600"
+          >
+            <option value="all">All Subjects</option>
+            <option value="safe">Safe (&ge; 80%)</option>
+            <option value="borderline">Borderline (75% – 79.9%)</option>
+            <option value="risk">Detention Risk (&lt; 75%)</option>
+            <option value="neutral">No Classes Conducted</option>
+          </select>
+        </div>
+      </div>
+
+      <p id="prior-academics-error" role="alert" class="hidden text-xs font-medium text-rose-700"></p>
+    </section>
+
+    <!-- Subject Cards Section -->
+    <section aria-labelledby="subjects-heading" class="space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <h2 id="subjects-heading" class="text-lg font-bold text-slate-900">Enrolled Semester Subjects</h2>
+          <p id="subjects-count-caption" class="text-xs text-slate-600">Showing 0 subjects</p>
+        </div>
+        <p class="text-xs text-slate-600">
+          Grade Scale: A+/A (10), A- (9), B (8), B- (7), C (6), C- (5), E (2), F (0)
+        </p>
+      </div>
+
+      <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+
+      <div
+        id="empty-subjects-state"
+        class="hidden bg-white rounded-xl border border-dashed border-slate-300 p-10 text-center space-y-3"
+      >
+        <p class="text-base font-semibold text-slate-800">No subjects match your current view.</p>
+        <p class="text-sm text-slate-600">Add a new Thapar University course or adjust your search and status filters.</p>
+        <div>
+          <button
+            type="button"
+            id="btn-empty-add-subject"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+          >
+            + Add Subject
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 mt-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-600">
+      <p>TIET AcademicPulse &bull; 100% Client-Side &bull; Zero External Data Transmission</p>
+      <p>Storage Key: <code class="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-800">tiet_academic_pulse_v1</code></p>
+    </div>
+  </footer>
+
+  <!-- Add / Edit Subject Modal -->
+  <div
+    id="subject-modal-backdrop"
+    class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
+  >
+    <div
+      id="subject-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="subject-modal-title"
+      class="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-lg p-6 space-y-5"
+    >
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h2 id="subject-modal-title" class="text-lg font-bold text-slate-900">Add Subject</h2>
+        <button
+          type="button"
+          id="btn-close-subject-modal"
+          aria-label="Close subject dialog"
+          class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+        >
+          <span aria-hidden="true" class="text-lg leading-none">&times;</span>
+        </button>
+      </div>
+
+      <form id="subject-form" novalidate class="space-y-4">
+        <input type="hidden" id="subject-form-id">
+
+        <div id="subject-form-error" role="alert" class="hidden rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-900"></div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="sm:col-span-1">
+            <label for="subject-code-input" class="block text-xs font-semibold text-slate-700 mb-1">
+              Course Code
+            </label>
+            <input
+              type="text"
+              id="subject-code-input"
+              required
+              maxlength="20"
+              placeholder="UTA018"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 uppercase"
+            >
+          </div>
+
+          <div class="sm:col-span-2">
+            <label for="subject-name-input" class="block text-xs font-semibold text-slate-700 mb-1">
+              Subject Name
+            </label>
+            <input
+              type="text"
+              id="subject-name-input"
+              required
+              maxlength="100"
+              placeholder="Object Oriented Programming"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+            >
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="subject-attended-input" class="block text-xs font-semibold text-slate-700 mb-1">
+              Attended Classes
+            </label>
+            <input
+              type="number"
+              id="subject-attended-input"
+              required
+              min="0"
+              step="1"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+            >
+          </div>
+
+          <div>
+            <label for="subject-total-input" class="block text-xs font-semibold text-slate-700 mb-1">
+              Total Conducted
+            </label>
+            <input
+              type="number"
+              id="subject-total-input"
+              required
+              min="0"
+              step="1"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+            >
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="subject-credits-input" class="block text-xs font-semibold text-slate-700 mb-1">
+              Course Credits
+            </label>
+            <input
+              type="number"
+              id="subject-credits-input"
+              required
+              min="0.5"
+              max="10"
+              step="0.5"
+              value="4.0"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+            >
+          </div>
+
+          <div>
+            <label for="subject-grade-select" class="block text-xs font-semibold text-slate-700 mb-1">
+              Expected Grade
+            </label>
+            <select
+              id="subject-grade-select"
+              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+            >
+              <option value="A+">A+ (10)</option>
+              <option value="A" selected>A (10)</option>
+              <option value="A-">A- (9)</option>
+              <option value="B">B (8)</option>
+              <option value="B-">B- (7)</option>
+              <option value="C">C (6)</option>
+              <option value="C-">C- (5)</option>
+              <option value="E">E (2)</option>
+              <option value="F">F (0)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button
+            type="button"
+            id="btn-cancel-subject-modal"
+            class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            id="btn-save-subject"
+            class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+          >
+            Save Subject
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Reset Confirmation Modal -->
+  <div
+    id="reset-modal-backdrop"
+    class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
+  >
+    <div
+      id="reset-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reset-modal-title"
+      class="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-md p-6 space-y-4"
+    >
+      <div class="flex items-center justify-between">
+        <h2 id="reset-modal-title" class="text-lg font-bold text-slate-900">Reset Demo Semester?</h2>
+        <button
+          type="button"
+          id="btn-close-reset-modal"
+          aria-label="Close reset confirmation dialog"
+          class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+        >
+          <span aria-hidden="true" class="text-lg leading-none">&times;</span>
+        </button>
+      </div>
+      <p class="text-sm text-slate-600">
+        This will replace your current subjects and prior CGPA inputs with the default Thapar University demo semester. Consider exporting a JSON backup first.
+      </p>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button
+          type="button"
+          id="btn-cancel-reset-modal"
+          class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          id="btn-confirm-reset"
+          class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
+        >
+          Reset to Demo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Toast Notification -->
+  <div
+    id="toast-region"
+    role="status"
+    aria-live="polite"
+    class="fixed bottom-4 right-4 z-40 max-w-sm pointer-events-none"
+  ></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
+

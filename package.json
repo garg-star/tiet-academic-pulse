@@ -1,0 +1,19 @@
+{
+  "name": "tiet-academic-pulse",
+  "version": "1.0.0",
+  "description": "100% client-side attendance margin tracker and credit-weighted SGPA/CGPA forecaster for Thapar Institute of Engineering & Technology (TIET) students.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "tiet",
+    "thapar",
+    "attendance",
+    "sgpa",
+    "cgpa",
+    "academic-tracker"
+  ],
+  "license": "MIT"
+}
+
